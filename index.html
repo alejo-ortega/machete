@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>tmux cheatsheet — fuzzy finder</title>
+<style>
+  :root {
+    --bg: #0c1116;
+    --panel: #131a21;
+    --border: #233038;
+    --text: #d6e2e8;
+    --muted: #7d939f;
+    --accent: #2dd4bf;
+    --accent-dim: rgba(45, 212, 191, 0.12);
+    --mark: rgba(45, 212, 191, 0.35);
+    --kbd-bg: #1e2930;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    min-height: 100vh;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(12,17,22,0.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 16px 14px;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  p.sub { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+  .search-row { display: flex; gap: 8px; align-items: center; }
+  .search-box { position: relative; flex: 1; }
+  input {
+    width: 100%; padding: 13px 40px 13px 38px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-size: 15px;
+    font-family: inherit; outline: none;
+  }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  .clear {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 16px; padding: 4px 8px; border-radius: 6px; display: none;
+  }
+  .clear:hover { color: var(--text); background: #222d35; }
+  .prefix-toggle {
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
+    color: var(--muted); white-space: nowrap;
+  }
+  .prefix-toggle button {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text);
+    font-family: inherit; font-size: 12px; padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  }
+  .prefix-toggle button.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .chip {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 12px; border-radius: 999px; font-family: inherit;
+    font-size: 12px; cursor: pointer;
+  }
+  .chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .meta { display: flex; justify-content: space-between; align-items: center; margin: 14px 0 10px; color: var(--muted); font-size: 12px; }
+  main { padding: 8px 16px 60px; }
+  h2.cat { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 22px 0 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 12px 10px; cursor: pointer;
+    transition: border-color .12s;
+  }
+  .card:hover, .card.selected { border-color: var(--accent); }
+  .card.selected { background: #152027; }
+  .keys { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; align-items: center; }
+  kbd {
+    background: var(--kbd-bg); border: 1px solid #33434e;
+    border-bottom-width: 2px; border-radius: 6px;
+    padding: 2px 7px; font-size: 12.5px; font-family: inherit; white-space: nowrap;
+  }
+  .desc { font-size: 13.5px; line-height: 1.4; margin-bottom: 6px; }
+  .cmd {
+    font-size: 12px; color: var(--accent); background: rgba(45,212,191,0.07);
+    border-radius: 6px; padding: 5px 8px; overflow-x: auto; white-space: nowrap;
+    display: flex; justify-content: space-between; gap: 8px; align-items: center;
+  }
+  .cat-tag { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .empty { text-align: center; color: var(--muted); padding: 60px 20px; }
+  footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(12,17,22,0.95); border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--muted); padding: 8px 16px;
+    display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+  }
+  footer b { color: var(--text); font-weight: 600; }
+  .toast {
+    position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%) translateY(10px);
+    background: var(--accent); color: #06231f; font-size: 13px; font-weight: 700;
+    padding: 8px 14px; border-radius: 8px; opacity: 0; transition: all .18s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (max-width: 600px) { .search-row { flex-direction: column; align-items: stretch; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>tmux <span>cheatsheet</span></h1>
+    <p class="sub">Fuzzy finder for shortcuts + CLI commands. Type to filter instantly.</p>
+    <div class="search-row">
+      <div class="search-box">
+        <span class="icon">❯</span>
+        <input id="q" type="text" placeholder="fuzzy search… try &quot;sp pane&quot;, &quot;kill sess&quot;, &quot;detach&quot;" autocomplete="off" spellcheck="false" />
+        <button class="clear" id="clear" title="Clear (Esc)">✕</button>
+      </div>
+      <div class="prefix-toggle">
+        prefix
+        <button id="pb" class="active">C-b</button>
+        <button id="pa">C-a</button>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="meta"><span id="count"></span><span>Enter = copy • click card = copy</span></div>
+    <div id="results"></div>
+  </div>
+</main>
+
+<footer>
+  <span><b>/</b> focus</span><span><b>↑↓</b> navigate</span><span><b>Enter</b> copy</span><span><b>Esc</b> clear</span>
+</footer>
+<div class="toast" id="toast">copied</div>
+
+<script>
+const DATA = [
+  // General
+  { keys: "C-b ?", desc: "List all key bindings", cat: "General" },
+  { keys: "C-b :", desc: "Enter tmux command prompt", cat: "General" },
+  { keys: "C-b t", desc: "Show clock in current pane", cat: "General" },
+  { keys: "C-b q", desc: "Show pane numbers — press number to jump", cat: "General" },
+  { keys: "C-b L", desc: "Switch to last session", cat: "General" },
+  { keys: "C-b l", desc: "Switch to last window", cat: "General" },
+  // Sessions
+  { keys: "C-b s", desc: "List sessions and switch", cat: "Sessions" },
+  { keys: "C-b $", desc: "Rename current session", cat: "Sessions" },
+  { keys: "C-b d", desc: "Detach from current session", cat: "Sessions" },
+  { keys: "C-b (", desc: "Previous session", cat: "Sessions" },
+  { keys: "C-b )", desc: "Next session", cat: "Sessions" },
+  { keys: "tmux new", desc: "Create new session", cmd: "tmux new", cat: "Sessions" },
+  { keys: "tmux new -s <name>", desc: "Create new named session", cmd: "tmux new -s mysession", cat: "Sessions" },
+  { keys: "tmux ls", desc: "List sessions", cmd: "tmux ls", cat: "Sessions" },
+  { keys: "tmux attach", desc: "Attach to last session", cmd: "tmux attach", cat: "Sessions" },
+  { keys: "tmux attach -t <name>", desc: "Attach to named session", cmd: "tmux attach -t mysession", cat: "Sessions" },
+  { keys: "tmux kill-session -t <name>", desc: "Kill named session", cmd: "tmux kill-session -t mysession", cat: "Sessions" },
+  { keys: "tmux rename-session -t <old> <new>", desc: "Rename session from CLI", cmd: "tmux rename-session -t old new", cat: "Sessions" },
+  // Windows
+  { keys: "C-b c", desc: "Create new window", cat: "Windows" },
+  { keys: "C-b ,", desc: "Rename current window", cat: "Windows" },
+  { keys: "C-b n", desc: "Next window", cat: "Windows" },
+  { keys: "C-b p", desc: "Previous window", cat: "Windows" },
+  { keys: "C-b 0..9", desc: "Switch to window by number", cat: "Windows" },
+  { keys: "C-b w", desc: "List windows, choose to switch", cat: "Windows" },
+  { keys: "C-b &", desc: "Kill current window (confirm)", cat: "Windows" },
+  { keys: "C-b f", desc: "Find window by name", cat: "Windows" },
+  { keys: "C-b .", desc: "Move window — prompt for new index", cat: "Windows" },
+  { keys: "C-b : movew", desc: "Move window (command form)", cmd: "move-window -t 2", cat: "Windows" },
+  // Panes
+  { keys: 'C-b %', desc: "Split pane vertically", cat: "Panes" },
+  { keys: 'C-b "', desc: "Split pane horizontally", cat: "Panes" },
+  { keys: "C-b o", desc: "Go to next pane", cat: "Panes" },
+  { keys: "C-b ;", desc: "Toggle to last active pane", cat: "Panes" },
+  { keys: "C-b x", desc: "Kill current pane (confirm)", cat: "Panes" },
+  { keys: "C-b z", desc: "Zoom / unzoom active pane (fullscreen)", cat: "Panes" },
+  { keys: "C-b Arrows", desc: "Move to pane in direction", cat: "Panes" },
+  { keys: "C-b C-Arrows", desc: "Resize pane (repeatable, 1 cell)", cmd: "resize-pane -U/-D/-L/-R", cat: "Panes" },
+  { keys: "C-b M-Arrows", desc: "Resize pane by 5 cells", cat: "Panes" },
+  { keys: "C-b {  /  C-b }", desc: "Swap pane with previous / next", cat: "Panes" },
+  { keys: "C-b Space", desc: "Cycle through pane layouts", cat: "Panes" },
+  { keys: "C-b M-1..5", desc: "Arrange panes: even-h, even-v, main-h, main-v, tiled", cat: "Panes" },
+  { keys: "C-b C-o", desc: "Rotate panes forward", cat: "Panes" },
+  { keys: "C-b !", desc: "Break pane into a new window", cat: "Panes" },
+  { keys: "C-b : join-pane", desc: "Join pane from another window", cmd: "join-pane -s 2.1", cat: "Panes" },
+  { keys: "C-b : setw synchronize-panes", desc: "Toggle input sync to all panes in window", cmd: "setw synchronize-panes on", cat: "Panes" },
+  // Copy mode
+  { keys: "C-b [", desc: "Enter copy mode (scroll / select)", cat: "Copy Mode" },
+  { keys: "C-b ]", desc: "Paste buffer", cat: "Copy Mode" },
+  { keys: "C-b #", desc: "List paste buffers", cat: "Copy Mode" },
+  { keys: "C-b =", desc: "Choose buffer to paste", cat: "Copy Mode" },
+  { keys: "Space", desc: "Start selection (in copy mode)", cat: "Copy Mode" },
+  { keys: "Enter / y", desc: "Copy selection and exit copy mode", cat: "Copy Mode" },
+  { keys: "q", desc: "Quit copy mode", cat: "Copy Mode" },
+  { keys: "/  then  ?", desc: "Search down / search up in copy mode", cat: "Copy Mode" },
+  { keys: "n / N", desc: "Next / previous search match", cat: "Copy Mode" },
+  { keys: "PgUp / PgDn", desc: "Scroll in copy mode", cat: "Copy Mode" },
+  // CLI & misc
+  { keys: "tmux kill-server", desc: "Kill tmux server — all sessions", cmd: "tmux kill-server", cat: "CLI & Misc" },
+  { keys: "tmux source-file ~/.tmux.conf", desc: "Reload config", cmd: "tmux source-file ~/.tmux.conf", cat: "CLI & Misc" },
+  { keys: "tmux set -g mouse on", desc: "Enable mouse support", cmd: "tmux set -g mouse on", cat: "CLI & Misc" },
+  { keys: "tmux list-keys", desc: "List all key bindings (CLI)", cmd: "tmux list-keys", cat: "CLI & Misc" },
+  { keys: "tmux show -g", desc: "Show global options", cmd: "tmux show -g", cat: "CLI & Misc" },
+  { keys: "tmux kill-pane -t <id>", desc: "Kill pane from CLI", cmd: "tmux kill-pane -t 1.0", cat: "CLI & Misc" },
+  { keys: "tmux new -s <n> -d <cmd>", desc: "New detached session running a command", cmd: "tmux new -s work -d htop", cat: "CLI & Misc" },
+  { keys: "C-b : display-message -p '#S'", desc: "Show current session name", cat: "CLI & Misc" },
+];
+
+const CATS = ["All", ...new Set(DATA.map(d => d.cat))];
+let activeCat = "All";
+let prefix = "C-b";
+let filtered = [...DATA];
+let sel = 0;
+
+const q = document.getElementById("q");
+const results = document.getElementById("results");
+const count = document.getElementById("count");
+const chipsEl = document.getElementById("chips");
+const clearBtn = document.getElementById("clear");
+const toast = document.getElementById("toast");
+
+// --- fuzzy core: subsequence match with scoring ---
+function fuzzyIndices(token, text) {
+  token = token.toLowerCase(); text = text.toLowerCase();
+  let ti = 0, indices = [], score = 0, consec = 0, lastPos = -2;
+  for (let i = 0; i < text.length && ti < token.length; i++) {
+    if (text[i] === token[ti]) {
+      indices.push(i);
+      // bonuses: start of string, after space/-/_/., consecutive
+      if (i === 0) score += 10;
+      else if (" /-_.:".includes(text[i-1])) score += 8;
+      if (i === lastPos + 1) { consec++; score += 4 + consec; } else consec = 0;
+      score += 1;
+      lastPos = i; ti++;
+    }
+  }
+  if (ti < token.length) return null;
+  // penalize long gaps
+  score -= (indices[indices.length-1] - indices[0]) * 0.1;
+  return { indices, score };
+}
+
+function matchItem(item, query) {
+  const displayKeys = fmtKeys(item.keys);
+  const hay = displayKeys + " " + item.desc + " " + (item.cmd || "") + " " + item.cat;
+  const tokens = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return { score: 0, hl: null };
+  let total = 0;
+  const hl = {};
+  for (const tok of tokens) {
+    let best = null, bestField = null;
+    for (const [field, val] of [["keys", displayKeys], ["desc", item.desc], ["cmd", item.cmd || ""]]) {
+      const m = fuzzyIndices(tok, val);
+      if (m && (!best || m.score > best.score)) { best = m; bestField = field; }
+    }
+    // also require token found somewhere in haystack as subsequence
+    const mHay = fuzzyIndices(tok, hay);
+    if (!mHay) return null;
+    total += (best ? best.score + 5 : mHay.score);
+    if (best) {
+      hl[bestField] = hl[bestField] || new Set();
+      best.indices.forEach(i => hl[bestField].add(i));
+    }
+  }
+  return { score: total, hl };
+}
+
+function highlight(text, set) {
+  if (!set || !set.size) return escapeHtml(text);
+  let out = "";
+  for (let i = 0; i < text.length; i++) {
+    const c = escapeHtml(text[i]);
+    out += set.has(i) ? `<mark>${c}</mark>` : c;
+  }
+  return out;
+}
+function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+function fmtKeys(k) { return prefix === "C-b" ? k : k.split("C-b").join("C-a"); }
+
+function applyFilter() {
+  const query = q.value;
+  clearBtn.style.display = query ? "block" : "none";
+  const out = [];
+  for (const item of DATA) {
+    if (activeCat !== "All" && item.cat !== activeCat) continue;
+    const m = matchItem(item, query);
+    if (m) out.push({ ...item, _score: m.score, _hl: m.hl });
+  }
+  if (query.trim()) out.sort((a, b) => b._score - a._score);
+  filtered = out;
+  sel = Math.min(sel, Math.max(0, filtered.length - 1));
+  if (!query.trim()) sel = 0;
+  render();
+}
+
+function render() {
+  // chips
+  chipsEl.innerHTML = CATS.map(c => {
+    const n = c === "All" ? DATA.length : DATA.filter(d => d.cat === c).length;
+    return `<button class="chip ${c===activeCat?"active":""}" data-cat="${c}">${c} · ${n}</button>`;
+  }).join("");
+  chipsEl.querySelectorAll(".chip").forEach(b => b.onclick = () => { activeCat = b.dataset.cat; sel = 0; applyFilter(); q.focus(); });
+
+  count.textContent = `${filtered.length} / ${DATA.length} results` + (q.value ? ` for "${q.value}"` : "");
+
+  if (!filtered.length) {
+    results.innerHTML = `<div class="empty">No matches. Try "pane", "split", "kill sess", "detach".<br><br><button class="chip" onclick="document.getElementById('q').value='';document.getElementById('q').dispatchEvent(new Event('input'))">clear search</button></div>`;
+    return;
+  }
+
+  const queryEmpty = !q.value.trim();
+  if (queryEmpty && activeCat === "All") {
+    // grouped view
+    results.innerHTML = CATS.slice(1).map(cat => {
+      const items = filtered.filter(f => f.cat === cat);
+      if (!items.length) return "";
+      return `<h2 class="cat">${cat} — ${items.length}</h2><div class="grid">${items.map(cardHtml).join("")}</div>`;
+    }).join("");
+  } else {
+    results.innerHTML = `<div class="grid">${filtered.map(cardHtml).join("")}</div>`;
+  }
+  // re-map flat index for keyboard nav: query DOM order
+  document.querySelectorAll(".card").forEach((el, i) => {
+    el.classList.toggle("selected", i === sel);
+    el.onclick = () => copyCard(filtered[flatIndex(el)], el);
+    el.onmouseenter = () => { sel = i; paintSel(); };
+  });
+}
+
+function flatIndex(el) { return Number(el.dataset.i); }
+
+function cardHtml(item) {
+  const i = filtered.indexOf(item);
+  const dk = fmtKeys(item.keys);
+  const hl = item._hl || {};
+  return `<div class="card" data-i="${i}">
+    <div class="keys">${dk.split("  ").map(part => `<kbd>${highlight(part.trim(), hl.keys)}</kbd>`).join("<span style='color:var(--muted)'> </span>")}
+      <span class="cat-tag" style="margin-left:auto">${item.cat}</span></div>
+    <div class="desc">${highlight(item.desc, hl.desc)}</div>
+    ${item.cmd ? `<div class="cmd"><span>${highlight(item.cmd, hl.cmd)}</span><span style="opacity:.6">⧉</span></div>` : ""}
+  </div>`;
+}
+
+function paintSel() {
+  document.querySelectorAll(".card").forEach((el, i) => el.classList.toggle("selected", i === sel));
+  document.querySelectorAll(".card")[sel]?.scrollIntoView({ block: "nearest" });
+}
+
+function copyText(t) {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(t);
+  const ta = document.createElement("textarea");
+  ta.value = t; document.body.appendChild(ta); ta.select();
+  document.execCommand("copy"); ta.remove();
+  return Promise.resolve();
+}
+function copyCard(item, el) {
+  if (!item) return;
+  const text = item.cmd || fmtKeys(item.keys);
+  copyText(text).then(() => {
+    toast.textContent = `copied: ${text}`;
+    toast.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.classList.remove("show"), 1400);
+  });
+}
+
+q.addEventListener("input", () => { sel = 0; applyFilter(); });
+clearBtn.onclick = () => { q.value = ""; sel = 0; applyFilter(); q.focus(); };
+document.getElementById("pb").onclick = e => { prefix = "C-b"; e.target.classList.add("active"); document.getElementById("pa").classList.remove("active"); applyFilter(); };
+document.getElementById("pa").onclick = e => { prefix = "C-a"; e.target.classList.add("active"); document.getElementById("pb").classList.remove("active"); applyFilter(); };
+
+document.addEventListener("keydown", e => {
+  if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); }
+  if (document.activeElement === q) {
+    if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(sel+1, filtered.length-1); paintSel(); }
+    if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(sel-1, 0); paintSel(); }
+    if (e.key === "Enter") { e.preventDefault(); copyCard(filtered[sel]); }
+    if (e.key === "Escape") { q.value = ""; sel = 0; applyFilter(); }
+  }
+});
+
+applyFilter();
+q.focus();
+</script>
+</body>
+</html>
