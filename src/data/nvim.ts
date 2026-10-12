@@ -1,12 +1,13 @@
+import type { Sheet } from "./types";
+
 // Neovim cheatsheet data, curated from dotfiles/src/nvim/.config/nvim.
-// Same schema as data/tmux.js. {leader} is replaced by the header toggle value.
+// Same schema as src/data/tmux.ts. {leader} is replaced by the header toggle value.
 // mode: n = normal, i = insert, x = visual/select (from vim.keymap.set).
-window.MACHETE_SHEETS = window.MACHETE_SHEETS || {};
-window.MACHETE_SHEETS.nvim = {
+export const nvim: Sheet = {
   id: "nvim",
   name: "nvim",
   order: 2,
-  tagline: "Core keymaps + plugins (snacks, gitsigns, LSP, conform…). Leader is Space.",
+  tagline: "My keymaps + plugins: snacks, gitsigns, LSP, conform, blink. My leader is Space.",
   searchPlaceholder: 'fuzzy search… try "buffer", "git", "format", "rename"',
   placeholder: { name: "leader", values: ["Space", ","], default: "Space" },
   sections: [
@@ -80,11 +81,11 @@ window.MACHETE_SHEETS.nvim = {
       { keys: "<C-f>", desc: "Scroll documentation down", mode: "i" },
     ]},
     { title: "Commands", items: [
-      { keys: ":Mason", desc: "Manage LSP servers / tools", cmd: ":Mason" },
-      { keys: ":LspInfo", desc: "LSP client status", cmd: ":LspInfo" },
-      { keys: ":ConformInfo", desc: "Formatter status", cmd: ":ConformInfo" },
-      { keys: ":TSUpdate", desc: "Update treesitter parsers", cmd: ":TSUpdate" },
-      { keys: ":checkhealth", desc: "Run health checks", cmd: ":checkhealth" },
+      { type: "command", keys: ":Mason", desc: "Manage LSP servers / tools", cmd: ":Mason" },
+      { type: "command", keys: ":LspInfo", desc: "LSP client status", cmd: ":LspInfo" },
+      { type: "command", keys: ":ConformInfo", desc: "Formatter status", cmd: ":ConformInfo" },
+      { type: "command", keys: ":TSUpdate", desc: "Update treesitter parsers", cmd: ":TSUpdate" },
+      { type: "command", keys: ":checkhealth", desc: "Run health checks", cmd: ":checkhealth" },
     ]},
   ],
 };

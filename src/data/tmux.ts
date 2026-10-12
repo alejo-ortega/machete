@@ -1,12 +1,13 @@
+import type { Sheet } from "./types";
+
 // tmux cheatsheet data.
-// Standard keymap schema — see data/nvim.js for the same shape.
+// Standard keymap schema — see src/data/types.ts.
 // {prefix} is replaced by the value chosen in the header toggle.
-window.MACHETE_SHEETS = window.MACHETE_SHEETS || {};
-window.MACHETE_SHEETS.tmux = {
+export const tmux: Sheet = {
   id: "tmux",
   name: "tmux",
   order: 1,
-  tagline: "Shortcuts + CLI commands. Type to filter instantly.",
+  tagline: "Stock bindings + CLI commands. My config: prefix C-b, base-index 1, mouse on.",
   searchPlaceholder: 'fuzzy search… try "sp pane", "kill sess", "detach"',
   placeholder: { name: "prefix", values: ["C-b", "C-a"], default: "C-b" },
   sections: [
@@ -24,13 +25,13 @@ window.MACHETE_SHEETS.tmux = {
       { keys: "{prefix} d", desc: "Detach from current session" },
       { keys: "{prefix} (", desc: "Previous session" },
       { keys: "{prefix} )", desc: "Next session" },
-      { keys: "tmux new", desc: "Create new session", cmd: "tmux new" },
-      { keys: "tmux new -s <name>", desc: "Create new named session", cmd: "tmux new -s mysession" },
-      { keys: "tmux ls", desc: "List sessions", cmd: "tmux ls" },
-      { keys: "tmux attach", desc: "Attach to last session", cmd: "tmux attach" },
-      { keys: "tmux attach -t <name>", desc: "Attach to named session", cmd: "tmux attach -t mysession" },
-      { keys: "tmux kill-session -t <name>", desc: "Kill named session", cmd: "tmux kill-session -t mysession" },
-      { keys: "tmux rename-session -t <old> <new>", desc: "Rename session from CLI", cmd: "tmux rename-session -t old new" },
+      { type: "command", keys: "tmux new", desc: "Create new session", cmd: "tmux new" },
+      { type: "command", keys: "tmux new -s <name>", desc: "Create new named session", cmd: "tmux new -s mysession" },
+      { type: "command", keys: "tmux ls", desc: "List sessions", cmd: "tmux ls" },
+      { type: "command", keys: "tmux attach", desc: "Attach to last session", cmd: "tmux attach" },
+      { type: "command", keys: "tmux attach -t <name>", desc: "Attach to named session", cmd: "tmux attach -t mysession" },
+      { type: "command", keys: "tmux kill-session -t <name>", desc: "Kill named session", cmd: "tmux kill-session -t mysession" },
+      { type: "command", keys: "tmux rename-session -t <old> <new>", desc: "Rename session from CLI", cmd: "tmux rename-session -t old new" },
     ]},
     { title: "Windows", items: [
       { keys: "{prefix} c", desc: "Create new window" },
@@ -75,13 +76,13 @@ window.MACHETE_SHEETS.tmux = {
       { keys: ["PgUp", "PgDn"], desc: "Scroll in copy mode" },
     ]},
     { title: "CLI & Misc", items: [
-      { keys: "tmux kill-server", desc: "Kill tmux server — all sessions", cmd: "tmux kill-server" },
-      { keys: "tmux source-file ~/.tmux.conf", desc: "Reload config", cmd: "tmux source-file ~/.tmux.conf" },
-      { keys: "tmux set -g mouse on", desc: "Enable mouse support", cmd: "tmux set -g mouse on" },
-      { keys: "tmux list-keys", desc: "List all key bindings (CLI)", cmd: "tmux list-keys" },
-      { keys: "tmux show -g", desc: "Show global options", cmd: "tmux show -g" },
-      { keys: "tmux kill-pane -t <id>", desc: "Kill pane from CLI", cmd: "tmux kill-pane -t 1.0" },
-      { keys: "tmux new -s <n> -d <cmd>", desc: "New detached session running a command", cmd: "tmux new -s work -d htop" },
+      { type: "command", keys: "tmux kill-server", desc: "Kill tmux server — all sessions", cmd: "tmux kill-server" },
+      { type: "command", keys: "tmux source-file ~/.tmux.conf", desc: "Reload config", cmd: "tmux source-file ~/.tmux.conf" },
+      { type: "command", keys: "tmux set -g mouse on", desc: "Enable mouse support", cmd: "tmux set -g mouse on" },
+      { type: "command", keys: "tmux list-keys", desc: "List all key bindings (CLI)", cmd: "tmux list-keys" },
+      { type: "command", keys: "tmux show -g", desc: "Show global options", cmd: "tmux show -g" },
+      { type: "command", keys: "tmux kill-pane -t <id>", desc: "Kill pane from CLI", cmd: "tmux kill-pane -t 1.0" },
+      { type: "command", keys: "tmux new -s <n> -d <cmd>", desc: "New detached session running a command", cmd: "tmux new -s work -d htop" },
       { keys: "{prefix} : display-message -p '#S'", desc: "Show current session name" },
     ]},
   ],
