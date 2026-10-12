@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>tmux cheatsheet — machete</title>
+<link rel="stylesheet" href="../assets/styles.css" />
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="back" href="../index.html">← machete</a>
+    <h1 id="title"></h1>
+    <p class="sub" id="tagline"></p>
+    <div class="search-row">
+      <div class="search-box">
+        <span class="icon">❯</span>
+        <input id="q" type="text" placeholder="fuzzy search…" autocomplete="off" spellcheck="false" />
+        <button class="clear" id="clear" title="Clear (Esc)">✕</button>
+      </div>
+      <div class="prefix-toggle" id="toggle"></div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    <div class="meta"><span id="count"></span><span>Enter = copy • click card = copy</span></div>
+    <div id="results"></div>
+  </div>
+</main>
+<footer>
+  <span><b>/</b> focus</span><span><b>↑↓</b> navigate</span><span><b>Enter</b> copy</span><span><b>Esc</b> clear</span>
+</footer>
+<div class="toast" id="toast">copied</div>
+<script>window.MACHETE_ID = "tmux";</script>
+<script src="../data/tmux.js"></script>
+<script src="../assets/engine.js"></script>
+</body>
+</html>
